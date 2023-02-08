@@ -60,7 +60,10 @@ ALL_LIB_PATH_COMP :=  $(addprefix -L, $(LIB_PATH_COMP))
 empty=
 space=$(empty) $(empty)
 COMMA=,
+
+ifdef LIB_PATH_RUN
 ALLLIB_PATH_RUN := $(subst $(space),$(COMMA),-Wl,$(addprefix -rpath=, $(LIB_PATH_RUN)))
+endif
 
 STD_IMPL = -std=$(STD)
 
@@ -89,6 +92,7 @@ $(DEPDIR)/%.d: %.$(SUFFIX)
 	
 # 如果依赖目录不存在，创建该目录   
 	@test -d $(@D) || mkdir -p $(@D)
+
 	@set -e; rm -f $@; \
 	$(CC) $(ALL_INCLUDE) -MM $< -MT "$*.o" | sed -E 's,($*).o[: ]*,$(OBJDIR)/\1.o $@: ,g' > $@
 
@@ -105,10 +109,14 @@ clean:
 install:
 	@if [ ! -d $(OUT_PUT_DIR) ] ; then mkdir -p $(OUT_PUT_DIR); fi
 
-# 拷贝动态库	
-	@cp -r $(filter-out .,$(LIB_PATH_RUN))  $(OUT_PUT_DIR)
-	@if [ -e $(filter .,$(LIB_PATH_RUN))/*.so ]; then cp -f $(filter .,$(LIB_PATH_RUN))/*.so $(OUT_PUT_DIR); fi
-	
 	@cp -f $(PROG) $(OUT_PUT_DIR)
+
+# 拷贝当前目录下的so文件，按文件拷贝
+	@if [ -e $(filter .,$(LIB_PATH_RUN))/*.so ]; then cp -f $(filter .,$(LIB_PATH_RUN))/*.so $(OUT_PUT_DIR); fi
+
+# 拷贝动态库，按目录拷贝
+	@if [ ! -z "$(filter-out .,$(LIB_PATH_RUN))" ]; then\
+		cp -r $(filter-out .,$(LIB_PATH_RUN))  $(OUT_PUT_DIR);\
+	fi	
 
 .PHONY : default clean install help
